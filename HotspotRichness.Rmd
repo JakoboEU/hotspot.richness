@@ -1,0 +1,852 @@
+---
+title: "Hotspot Richness"
+output: html_notebook
+---
+
+
+
+```{r}
+library(bigrquery)
+library(randomForest)
+library(ggplot2)
+library(reshape2)
+library(rpart)
+library(tidyverse)
+```
+
+
+```{r}
+# Store the project id
+projectid = "1040471158864"
+
+# Set your query
+sql <- "SELECT * FROM `endless-matter-297214.model.model_hotspot_richness_data`"
+
+# Run the query and store the data in a dataframe
+bq_dat <- bq_project_query(x = projectid, query = sql)
+
+bq_table_fields(bq_dat)
+```
+
+```{r}
+dataset <- bq_table_download(bq_dat, max_results = Inf, page_size = 500) 
+
+```
+```{r}
+nrow(dataset)
+```
+
+```{r}
+length(unique(dataset$city_name))
+```
+
+```{r}
+dataset[dataset$city_name == '',]
+```
+
+```{r}
+write_csv(dataset, "hotspot_data.csv")
+
+dataset <- read_csv("hotspot_data.csv")
+
+head(dataset)
+```
+```{r}
+ggplot(dataset, aes(x = number_of_checklists, y = locality_project_richness)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x))
+```
+
+```{r}
+dataset$abs_latitude = abs(dataset$latitude)
+data <- dataset[,c(
+    "city_name",
+    "locality_project_richness",
+    "pop_2015",
+    "number_of_checklists",
+    "elevation",
+    "latitude",
+    "abs_latitude",
+    "city_pc_bare",
+    "city_pc_closed_forest_deciduous_broadleaf",
+    "city_pc_closed_forest_deciduous_needle",
+    "city_pc_closed_forest_evergreen_broadleaf",
+    "city_pc_closed_forest_evergreen_needle",
+    "city_pc_closed_forest_forest_mixed",
+    "city_pc_closed_forest_forest_other",
+    "city_pc_closed_forest_forest_total",
+    "city_pc_cultivated",
+    "city_pc_herbaceous_vegetation",
+    "city_pc_herbaceous_wetland",
+    "city_pc_moss_and_lichen",
+    "city_pc_ocean",
+    "city_pc_open_forest_deciduous_broadleaf",
+    "city_pc_open_forest_deciduous_needle",
+    "city_pc_open_forest_evergreen_broadleaf",
+    "city_pc_open_forest_evergreen_needle",
+    "city_pc_open_forest_forest_mixed",
+    "city_pc_open_forest_forest_other",
+    "city_pc_open_forest_forest_total",
+    "city_pc_permanent_water",
+    "city_pc_shrubs",
+    "city_pc_snow",
+    "city_pc_unknown",
+    "city_pc_urban",
+    "region_pc_bare",
+    "region_pc_closed_forest_deciduous_broadleaf",
+    "region_pc_closed_forest_deciduous_needle",
+    "region_pc_closed_forest_evergreen_broadleaf",
+    "region_pc_closed_forest_evergreen_needle",
+    "region_pc_closed_forest_forest_mixed",
+    "region_pc_closed_forest_forest_other",
+    "region_pc_closed_forest_forest_total",
+    "region_pc_cultivated",
+    "region_pc_herbaceous_vegetation",
+    "region_pc_herbaceous_wetland",
+    "region_pc_moss_and_lichen",
+    "region_pc_ocean",
+    "region_pc_open_forest_deciduous_broadleaf",
+    "region_pc_open_forest_deciduous_needle",
+    "region_pc_open_forest_evergreen_broadleaf",
+    "region_pc_open_forest_evergreen_needle",
+    "region_pc_open_forest_forest_mixed",
+    "region_pc_open_forest_forest_other",
+    "region_pc_open_forest_forest_total",
+    "region_pc_permanent_water",
+    "region_pc_shrubs",
+    "region_pc_snow",
+    "region_pc_unknown",
+    "region_pc_urban",
+    "b500_avg_pop_density",
+    "b500_pc_bare",
+    "b500_pc_closed_forest_deciduous_broadleaf",
+    "b500_pc_closed_forest_deciduous_needle",
+    "b500_pc_closed_forest_evergreen_broadleaf",
+    "b500_pc_closed_forest_evergreen_needle",
+    "b500_pc_closed_forest_forest_mixed",
+    "b500_pc_closed_forest_forest_other",
+    "b500_pc_closed_forest_forest_total",
+    "b500_pc_cultivated",
+    "b500_pc_herbaceous_vegetation",
+    "b500_pc_herbaceous_wetland",
+    "b500_pc_moss_and_lichen",
+    "b500_pc_ocean",
+    "b500_pc_open_forest_deciduous_broadleaf",
+    "b500_pc_open_forest_deciduous_needle",
+    "b500_pc_open_forest_evergreen_broadleaf",
+    "b500_pc_open_forest_evergreen_needle",
+    "b500_pc_open_forest_forest_mixed",
+    "b500_pc_open_forest_forest_other",
+    "b500_pc_open_forest_forest_total",
+    "b500_pc_permanent_water",
+    "b500_pc_shrubs",
+    "b500_pc_snow",
+    "b500_pc_unknown",
+    "b500_pc_urban",
+    "b1km_avg_pop_density",
+    "b1km_pc_bare",
+    "b1km_pc_closed_forest_deciduous_broadleaf",
+    "b1km_pc_closed_forest_deciduous_needle",
+    "b1km_pc_closed_forest_evergreen_broadleaf",
+    "b1km_pc_closed_forest_evergreen_needle",
+    "b1km_pc_closed_forest_forest_mixed",
+    "b1km_pc_closed_forest_forest_other",
+    "b1km_pc_closed_forest_forest_total",
+    "b1km_pc_cultivated",
+    "b1km_pc_herbaceous_vegetation",
+    "b1km_pc_herbaceous_wetland",
+    "b1km_pc_moss_and_lichen",
+    "b1km_pc_ocean",
+    "b1km_pc_open_forest_deciduous_broadleaf",
+    "b1km_pc_open_forest_deciduous_needle",
+    "b1km_pc_open_forest_evergreen_broadleaf",
+    "b1km_pc_open_forest_evergreen_needle",
+    "b1km_pc_open_forest_forest_mixed",
+    "b1km_pc_open_forest_forest_other",
+    "b1km_pc_open_forest_forest_total",
+    "b1km_pc_permanent_water",
+    "b1km_pc_shrubs",
+    "b1km_pc_snow",
+    "b1km_pc_unknown",
+    "b1km_pc_urban",
+    "b2km_avg_pop_density",
+    "b2km_pc_bare",
+    "b2km_pc_closed_forest_deciduous_broadleaf",
+    "b2km_pc_closed_forest_deciduous_needle",
+    "b2km_pc_closed_forest_evergreen_broadleaf",
+    "b2km_pc_closed_forest_evergreen_needle",
+    "b2km_pc_closed_forest_forest_mixed",
+    "b2km_pc_closed_forest_forest_other",
+    "b2km_pc_closed_forest_forest_total",
+    "b2km_pc_cultivated",
+    "b2km_pc_herbaceous_vegetation",
+    "b2km_pc_herbaceous_wetland",
+    "b2km_pc_moss_and_lichen",
+    "b2km_pc_ocean",
+    "b2km_pc_open_forest_deciduous_broadleaf",
+    "b2km_pc_open_forest_deciduous_needle",
+    "b2km_pc_open_forest_evergreen_broadleaf",
+    "b2km_pc_open_forest_evergreen_needle",
+    "b2km_pc_open_forest_forest_mixed",
+    "b2km_pc_open_forest_forest_other",
+    "b2km_pc_open_forest_forest_total",
+    "b2km_pc_permanent_water",
+    "b2km_pc_shrubs",
+    "b2km_pc_snow",
+    "b2km_pc_unknown",
+    "b2km_pc_urban",
+    "b3km_avg_pop_density",
+    "b3km_pc_bare",
+    "b3km_pc_closed_forest_deciduous_broadleaf",
+    "b3km_pc_closed_forest_deciduous_needle",
+    "b3km_pc_closed_forest_evergreen_broadleaf",
+    "b3km_pc_closed_forest_evergreen_needle",
+    "b3km_pc_closed_forest_forest_mixed",
+    "b3km_pc_closed_forest_forest_other",
+    "b3km_pc_closed_forest_forest_total",
+    "b3km_pc_cultivated",
+    "b3km_pc_herbaceous_vegetation",
+    "b3km_pc_herbaceous_wetland",
+    "b3km_pc_moss_and_lichen",
+    "b3km_pc_ocean",
+    "b3km_pc_open_forest_deciduous_broadleaf",
+    "b3km_pc_open_forest_deciduous_needle",
+    "b3km_pc_open_forest_evergreen_broadleaf",
+    "b3km_pc_open_forest_evergreen_needle",
+    "b3km_pc_open_forest_forest_mixed",
+    "b3km_pc_open_forest_forest_other",
+    "b3km_pc_open_forest_forest_total",
+    "b3km_pc_permanent_water",
+    "b3km_pc_shrubs",
+    "b3km_pc_snow",
+    "b3km_pc_unknown",
+    "b3km_pc_urban",
+    "b4km_avg_pop_density",
+    "b4km_pc_bare",
+    "b4km_pc_closed_forest_deciduous_broadleaf",
+    "b4km_pc_closed_forest_deciduous_needle",
+    "b4km_pc_closed_forest_evergreen_broadleaf",
+    "b4km_pc_closed_forest_evergreen_needle",
+    "b4km_pc_closed_forest_forest_mixed",
+    "b4km_pc_closed_forest_forest_other",
+    "b4km_pc_closed_forest_forest_total",
+    "b4km_pc_cultivated",
+    "b4km_pc_herbaceous_vegetation",
+    "b4km_pc_herbaceous_wetland",
+    "b4km_pc_moss_and_lichen",
+    "b4km_pc_ocean",
+    "b4km_pc_open_forest_deciduous_broadleaf",
+    "b4km_pc_open_forest_deciduous_needle",
+    "b4km_pc_open_forest_evergreen_broadleaf",
+    "b4km_pc_open_forest_evergreen_needle",
+    "b4km_pc_open_forest_forest_mixed",
+    "b4km_pc_open_forest_forest_other",
+    "b4km_pc_open_forest_forest_total",
+    "b4km_pc_permanent_water",
+    "b4km_pc_shrubs",
+    "b4km_pc_snow",
+    "b4km_pc_unknown",
+    "b4km_pc_urban",
+    "b5km_avg_pop_density",
+    "b5km_pc_bare",
+    "b5km_pc_closed_forest_deciduous_broadleaf",
+    "b5km_pc_closed_forest_deciduous_needle",
+    "b5km_pc_closed_forest_evergreen_broadleaf",
+    "b5km_pc_closed_forest_evergreen_needle",
+    "b5km_pc_closed_forest_forest_mixed",
+    "b5km_pc_closed_forest_forest_other",
+    "b5km_pc_closed_forest_forest_total",
+    "b5km_pc_cultivated",
+    "b5km_pc_herbaceous_vegetation",
+    "b5km_pc_herbaceous_wetland",
+    "b5km_pc_moss_and_lichen",
+    "b5km_pc_ocean",
+    "b5km_pc_open_forest_deciduous_broadleaf",
+    "b5km_pc_open_forest_deciduous_needle",
+    "b5km_pc_open_forest_evergreen_broadleaf",
+    "b5km_pc_open_forest_evergreen_needle",
+    "b5km_pc_open_forest_forest_mixed",
+    "b5km_pc_open_forest_forest_other",
+    "b5km_pc_open_forest_forest_total",
+    "b5km_pc_permanent_water",
+    "b5km_pc_shrubs",
+    "b5km_pc_snow",
+    "b5km_pc_unknown",
+    "b5km_pc_urban"
+)]
+```
+
+```{r}
+names(data[,-1])
+```
+
+
+
+```{r}
+rf <- randomForest(
+      locality_project_richness ~ .,
+      data=data[,-1],
+      ntree = 2000,
+      replace = FALSE,
+      importance = TRUE
+    )
+rf
+```
+
+```{r}
+data.frame(t(randomForest::importance(rf, type = 1, scale = F)))
+```
+
+```{r}
+grab_importance <- function(dataset) {
+  rf <- randomForest(
+      locality_project_richness ~ .,
+      data=dataset,
+      ntree = 2000,
+      replace = FALSE,
+      importance = TRUE
+  )
+  t(randomForest::importance(rf, type = 1, scale = F))
+}
+```
+
+
+```{r}
+test <- data.frame()
+for (i in 1:50) {
+    test = rbind(test, grab_importance(data[,-1]))
+}
+```
+
+
+```{r}
+sorted.test <- test[,order(colMeans(-test),colMeans(-test))]
+sorted.test 
+```
+
+
+```{r}
+ggplot(data = melt(sorted.test[,c(1:50)]), aes(x=variable, y=value)) + 
+  geom_boxplot() + 
+  xlab("Predictor Name") + ylab("Importance") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+sd.test <- data.frame(sapply(sorted.test, sd))
+sd.test
+```
+
+```{r}
+d <- sd.test
+names <- rownames(d)
+rownames(d) <- NULL
+variable_selection_output <- cbind(names,d)
+variable_selection_output
+```
+
+```{r}
+sd.test$x <- c(1:211)
+sd.test$y <- sd.test$sapply.sorted.test..sd.
+sd.model <- rpart(y ~ x, data=sd.test)
+sd.predict <- predict(sd.model)
+sd.predict
+```
+
+0.01726565
+```{r}
+sd.test[c(1:20),]
+```
+
+```{r}
+candidates <- sd.test[c(1:50),]
+names2 <- rownames(candidates)
+
+ggplot(data = candidates, aes(x=x, y=y)) + 
+  geom_line() +
+  ylab("Standard Deviation of VI") +
+  xlab("Predictor Name") + scale_x_discrete(limits=names2) + 
+  geom_hline(yintercept = 0.01726565 , linetype="dashed", color = "red") +
+  theme_bw()  + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+
+```{r}
+sd.test$keep <- sd.test$sapply.sorted.test..sd. >  0.01726565
+sd.test[sd.test$keep == T,]
+```
+number_of_checklists
+latitude
+elevation
+pop_2015
+
+b500_pc_urban
+b500_avg_pop_density
+b500_pc_open_forest_forest_other
+b500_pc_open_forest_forest_total
+b1km_pc_shrubs
+b500_pc_closed_forest_forest_total
+b1km_pc_cultivated
+b500_pc_herbaceous_wetland
+b500_pc_closed_forest_forest_other
+b500_pc_closed_forest_deciduous_broadleaf
+b1km_pc_permanent_water
+b3km_pc_herbaceous_vegetation
+b5km_pc_bare
+b5km_pc_closed_forest_evergreen_needle
+b500_pc_ocean
+b5km_pc_open_forest_evergreen_needle
+b5km_pc_closed_forest_evergreen_broadleaf
+b5km_pc_open_forest_deciduous_broadleaf
+b5km_pc_closed_forest_forest_mixed
+b5km_pc_open_forest_evergreen_broadleaf
+
+city_pc_permanent_water
+city_pc_urban
+city_pc_cultivated
+city_pc_shrubs
+city_pc_closed_forest_evergreen_needle
+city_pc_open_forest_forest_other
+city_pc_open_forest_forest_total
+city_pc_closed_forest_forest_other
+city_pc_closed_forest_forest_total
+city_pc_bare
+city_pc_herbaceous_vegetation
+city_pc_herbaceous_wetland
+city_pc_closed_forest_deciduous_broadleaf
+city_pc_closed_forest_forest_mixed
+city_pc_open_forest_deciduous_broadleaf
+city_pc_open_forest_evergreen_needle
+city_pc_closed_forest_evergreen_broadleaf
+city_pc_open_forest_evergreen_broadleaf
+city_pc_ocean
+
+region_pc_shrubs
+region_pc_closed_forest_evergreen_needle
+region_pc_cultivated
+region_pc_open_forest_evergreen_needle
+region_pc_closed_forest_forest_total
+region_pc_permanent_water
+region_pc_open_forest_forest_other
+region_pc_bare
+region_pc_herbaceous_wetland
+region_pc_closed_forest_deciduous_broadleaf
+region_pc_urban
+region_pc_closed_forest_forest_other
+region_pc_open_forest_deciduous_broadleaf
+region_pc_closed_forest_evergreen_broadleaf
+region_pc_open_forest_evergreen_broadleaf
+region_pc_closed_forest_forest_mixed
+region_pc_snow
+region_pc_ocean
+region_pc_open_forest_forest_mixed
+region_pc_unknown
+
+```{r}
+data_reduced <- data[,c(
+    "city_name",
+    "locality_project_richness",
+    "pop_2015",
+    "number_of_checklists",
+    "elevation",
+    "latitude",
+    "city_pc_permanent_water",
+    "city_pc_urban",
+    "city_pc_cultivated",
+    "city_pc_shrubs",
+    "city_pc_closed_forest_evergreen_needle",
+    "city_pc_open_forest_forest_other",
+    "city_pc_open_forest_forest_total",
+    "city_pc_closed_forest_forest_other",
+    "city_pc_closed_forest_forest_total",
+    "city_pc_bare",
+    "city_pc_herbaceous_vegetation",
+    "city_pc_herbaceous_wetland",
+    "city_pc_closed_forest_deciduous_broadleaf",
+    "city_pc_closed_forest_forest_mixed",
+    "city_pc_open_forest_deciduous_broadleaf",
+    "city_pc_open_forest_evergreen_needle",
+    "city_pc_closed_forest_evergreen_broadleaf",
+    "city_pc_open_forest_evergreen_broadleaf",
+    "city_pc_ocean",
+    "region_pc_shrubs",
+    "region_pc_closed_forest_evergreen_needle",
+    "region_pc_cultivated",
+    "region_pc_open_forest_evergreen_needle",
+    "region_pc_closed_forest_forest_total",
+    "region_pc_permanent_water",
+    "region_pc_open_forest_forest_other",
+    "region_pc_bare",
+    "region_pc_herbaceous_wetland",
+    "region_pc_closed_forest_deciduous_broadleaf",
+    "region_pc_urban",
+    "region_pc_closed_forest_forest_other",
+    "region_pc_open_forest_deciduous_broadleaf",
+    "region_pc_closed_forest_evergreen_broadleaf",
+    "region_pc_open_forest_evergreen_broadleaf",
+    "region_pc_closed_forest_forest_mixed",
+    "region_pc_snow",
+    "region_pc_ocean",
+    "region_pc_open_forest_forest_mixed",
+    "region_pc_unknown",
+    "b500_pc_urban",
+    "b500_avg_pop_density",
+    "b500_pc_open_forest_forest_other",
+    "b500_pc_open_forest_forest_total",
+    "b1km_pc_shrubs",
+    "b500_pc_closed_forest_forest_total",
+    "b1km_pc_cultivated",
+    "b500_pc_herbaceous_wetland",
+    "b500_pc_closed_forest_forest_other",
+    "b500_pc_closed_forest_deciduous_broadleaf",
+    "b1km_pc_permanent_water",
+    "b3km_pc_herbaceous_vegetation",
+    "b5km_pc_bare",
+    "b5km_pc_closed_forest_evergreen_needle",
+    "b500_pc_ocean",
+    "b5km_pc_open_forest_evergreen_needle",
+    "b5km_pc_closed_forest_evergreen_broadleaf",
+    "b5km_pc_open_forest_deciduous_broadleaf",
+    "b5km_pc_closed_forest_forest_mixed",
+    "b5km_pc_open_forest_evergreen_broadleaf"
+)]
+data_reduced[,-1]
+```
+
+```{r}
+test_reduced <- data.frame()
+for (i in 1:50) {
+    test_reduced = nextimportance(test_reduced, data_reduced[,-1])
+}
+```
+
+
+```{r}
+sorted.test_reduced <- test_reduced[,order(colMeans(-test_reduced),colMeans(-test_reduced))]
+sorted.test_reduced
+```
+
+```{r}
+ggplot(data = melt(sorted.test_reduced), aes(x=variable, y=value)) + 
+  geom_boxplot() + 
+  xlab("Predictor Name") + ylab("Importance") +
+  theme_bw() + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+```{r}
+sd.test_reduced <- data.frame(sapply(sorted.test_reduced, sd))
+sd.test_reduced
+```
+
+```{r}
+d2 <- sd.test_reduced
+names_r <- rownames(d2)
+rownames(d2) <- NULL
+variable_selection_output_r <- cbind(names_r,d2)
+variable_selection_output_r
+```
+```{r}
+sd.test_reduced$x <- c(1:63)
+sd.test_reduced$y <- sd.test_reduced$sapply.sorted.test_reduced..sd.
+sd.model_reduced <- rpart(y ~ x, data=sd.test_reduced)
+sd.predict_r <- predict(sd.model_reduced)
+sd.predict_r
+```
+0.2544938 
+```{r}
+ggplot(data = sd.test_reduced, aes(x=x, y=y)) + 
+  geom_line() +
+  ylab("Standard Deviation of VI") +
+  xlab("Predictor Name") + scale_x_discrete(limits=names_r) + 
+  geom_hline(yintercept = 0.09548451  , linetype="dashed", color = "red") +
+  theme_bw()  + theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+sd.test_reduced$keep <- sd.test_reduced$sapply.sorted.test_reduced..sd. >  0.09548451 
+sd.test_reduced[sd.test_reduced$keep == T,]
+```
+```{r}
+chosen <- row.names(sd.test_reduced)
+write_lines(chosen, "chosen.txt")
+```
+
+```{r}
+generate_oob <- function(data) {
+    rf <- randomForest(
+      locality_project_richness ~ .,
+      data=data,
+      replace = FALSE,
+      importance = TRUE
+    )
+    mean(rf$mse)
+}
+
+create_fifty_rows_of_oob <- function(dataset) {
+  result <- c()
+  
+  for (i in 1:50) {
+    result <- append(result, generate_oob(dataset))
+  }
+  
+  m <- mean(result)
+  sd <- sd(result)
+  sum <- m + sd
+  c(m, sd, sum)
+}
+```
+
+```{r}
+rf <- randomForest(
+      type = classification,
+      locality_project_richness ~ .,
+      data=data[,c("locality_project_richness", "b500_pc_urban")],
+      replace = FALSE,
+      importance = TRUE
+    )
+    mean(rf$mse)
+    
+```
+
+```{r}
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow", "b5km_pc_open_forest_deciduous_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow", "b5km_pc_open_forest_deciduous_broadleaf", "city_pc_open_forest_evergreen_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow", "b5km_pc_open_forest_deciduous_broadleaf", "city_pc_open_forest_evergreen_broadleaf", "city_pc_open_forest_evergreen_needle")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow", "b5km_pc_open_forest_deciduous_broadleaf", "city_pc_open_forest_evergreen_broadleaf", "city_pc_open_forest_evergreen_needle", "b5km_pc_open_forest_evergreen_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow", "b5km_pc_open_forest_deciduous_broadleaf", "city_pc_open_forest_evergreen_broadleaf", "city_pc_open_forest_evergreen_needle", "b5km_pc_open_forest_evergreen_broadleaf", "city_pc_closed_forest_evergreen_broadleaf")])
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow", "b5km_pc_open_forest_deciduous_broadleaf", "city_pc_open_forest_evergreen_broadleaf", "city_pc_open_forest_evergreen_needle", "b5km_pc_open_forest_evergreen_broadleaf", "city_pc_closed_forest_evergreen_broadleaf", "region_pc_unknown")])
+
+```
+[1] 237.0585545   0.4036481 237.4622026
+[1] 218.1458812   0.3908493 218.5367305
+[1] 215.6906060   0.4501034 216.1407094
+[1] 187.4073695   0.3982198 187.8055892
+[1] 174.3622497   0.4933562 174.8556059
+[1] 164.655811   0.370785 165.026596
+[1] 164.3013576   0.4185055 164.7198631
+[1] 159.4549015   0.3888992 159.8438007
+[1] 156.7477219   0.3463417 157.0940636
+[1] 152.6768138   0.3933915 153.0702053
+[1] 149.2953546   0.3477907 149.6431452
+[1] 146.7227400   0.4023227 147.1250627
+[1] 145.4472967   0.3833911 145.8306878
+[1] 145.3455562   0.3458964 145.6914527
+[1] 144.9421186   0.4236683 145.3657870
+[1] 144.3817882   0.3899382 144.7717264
+[1] 144.1143999   0.3362032 144.4506030
+[1] 142.7063116   0.3346706 143.0409821
+[1] 141.9666000   0.3522233 142.3188233
+[1] 141.7653731   0.3070641 142.0724373
+[1] 140.9631356   0.3725054 141.3356410
+[1] 140.8841132   0.3543562 141.2384694
+[1] 140.7499803   0.3999639 141.1499442
+[1] 140.0837193   0.3600603 140.4437796
+[1] 139.9770030   0.4299025 140.4069055
+[1] 139.7054772   0.3415725 140.0470497
+[1] 139.4950209   0.4339608 139.9289817
+[1] 139.2367927   0.3517541 139.5885469
+[1] 138.8937076   0.3877111 139.2814187
+[1] 138.7225731   0.3463675 139.0689406
+[1] 138.6250656   0.3780332 139.0030988
+[1] 138.6776775   0.3756454 139.0533229
+[1] 138.5791399   0.3543379 138.9334778
+[1] 138.4959956   0.3750295 138.8710251
+[1] 138.639223   0.326065 138.965288
+[1] 138.5073939   0.3448314 138.8522253
+[1] 138.3947969   0.3919446 138.7867415
+[1] 138.5162478   0.3174409 138.8336887
+[1] 138.414962   0.378825 138.793787
+[1] 138.3266329   0.3123088 138.6389417
+[1] 138.4877325   0.4134386 138.9011711
+[1] 138.3125202   0.4000265 138.7125467
+[1] 138.2442249   0.3692172 138.6134421
+[1] 138.3653174   0.3709456 138.7362629
+[1] 138.3451530   0.3664333 138.7115863
+[1] 138.2880550   0.3226711 138.6107261
+[1] 138.3431109   0.3443736 138.6874846
+[1] 138.2086366   0.3673946 138.5760312
+[1] 138.141095   0.366729 138.507824
+[1] 138.1914020   0.4028483 138.5942504
+[1] 137.9775509   0.2982063 138.2757571
+[1] 137.9943154   0.3294962 138.3238116
+[1] 137.9968731   0.3703626 138.3672357
+[1] 138.0947548   0.4354293 138.5301841
+[1] 137.823234   0.393275 138.216509
+[1] 138.0144048   0.3999737 138.4143785 <- chosen model
+[1] 137.8488514   0.3605848 138.2094361
+[1] 137.6818089   0.3687205 138.0505294 <- lowest score
+[1] 137.7248427   0.3723474 138.0971901
+[1] 137.7560753   0.4482137 138.2042890
+[1] 137.7884546   0.3596147 138.1480693
+[1] 137.7575813   0.3865365 138.1441179
+
+
+create_fifty_rows_of_oob(data[,c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow")])
+
+latitude
+number_of_checklists
+elevation
+
+b500_pc_urban
+b500_avg_pop_density
+b500_pc_open_forest_forest_other
+b500_pc_open_forest_forest_total
+b1km_pc_shrubs
+b1km_pc_cultivated
+b500_pc_closed_forest_forest_total
+b500_pc_herbaceous_wetland
+b3km_pc_herbaceous_vegetation
+b500_pc_closed_forest_forest_other
+b1km_pc_permanent_water
+b5km_pc_bare
+b5km_pc_closed_forest_evergreen_needle
+b500_pc_ocean
+b5km_pc_open_forest_evergreen_needle
+b5km_pc_closed_forest_forest_mixed
+b5km_pc_closed_forest_evergreen_broadleaf
+
+city_pc_permanent_water
+city_pc_cultivated
+city_pc_shrubs
+city_pc_urban
+city_pc_closed_forest_evergreen_needle
+city_pc_open_forest_forest_total
+city_pc_bare
+city_pc_open_forest_forest_other
+city_pc_closed_forest_forest_total
+city_pc_closed_forest_forest_other
+city_pc_herbaceous_vegetation
+city_pc_closed_forest_deciduous_broadleaf
+city_pc_open_forest_deciduous_broadleaf
+city_pc_closed_forest_forest_mixed
+city_pc_ocean
+
+region_pc_shrubs
+region_pc_cultivated
+region_pc_closed_forest_evergreen_needle
+region_pc_closed_forest_forest_total
+region_pc_open_forest_evergreen_needle
+region_pc_bare
+region_pc_herbaceous_wetland
+region_pc_closed_forest_forest_other
+region_pc_closed_forest_evergreen_broadleaf
+region_pc_open_forest_deciduous_broadleaf
+region_pc_closed_forest_forest_mixed
+region_pc_open_forest_evergreen_broadleaf
+region_pc_ocean
+region_pc_open_forest_forest_mixed
+region_pc_snow
+
+
+Chosen Model (locality_richness)
+------------
+
+```{r}
+data_choice <- data[c("locality_project_richness", "b500_pc_urban", "b500_avg_pop_density", "b500_pc_open_forest_forest_other", "b500_pc_open_forest_forest_total", "region_pc_shrubs", "latitude", "number_of_checklists", "b1km_pc_shrubs", "b1km_pc_cultivated", "city_pc_permanent_water", "b500_pc_closed_forest_forest_total", "b500_pc_herbaceous_wetland", "b3km_pc_herbaceous_vegetation", "city_pc_cultivated", "city_pc_shrubs", "b500_pc_closed_forest_forest_other", "city_pc_urban", "region_pc_cultivated", "b1km_pc_permanent_water", "b5km_pc_bare", "region_pc_closed_forest_evergreen_needle", "elevation", "region_pc_closed_forest_forest_total", "region_pc_open_forest_evergreen_needle", "b5km_pc_closed_forest_evergreen_needle", "city_pc_closed_forest_evergreen_needle", "b500_pc_closed_forest_deciduous_broadleaf", "region_pc_permanent_water", "region_pc_open_forest_forest_other", "b500_pc_ocean", "city_pc_open_forest_forest_total", "city_pc_bare", "region_pc_bare", "city_pc_open_forest_forest_other", "city_pc_closed_forest_forest_total", "city_pc_closed_forest_forest_other", "region_pc_herbaceous_wetland", "region_pc_closed_forest_deciduous_broadleaf", "region_pc_urban", "city_pc_herbaceous_wetland", "pop_2015", "region_pc_closed_forest_forest_other", "city_pc_herbaceous_vegetation", "region_pc_closed_forest_evergreen_broadleaf", "region_pc_open_forest_deciduous_broadleaf", "city_pc_closed_forest_deciduous_broadleaf", "region_pc_closed_forest_forest_mixed", "b5km_pc_open_forest_evergreen_needle", "region_pc_open_forest_evergreen_broadleaf", "region_pc_ocean", "city_pc_open_forest_deciduous_broadleaf", "b5km_pc_closed_forest_forest_mixed", "region_pc_open_forest_forest_mixed", "city_pc_closed_forest_forest_mixed", "city_pc_ocean", "b5km_pc_closed_forest_evergreen_broadleaf", "region_pc_snow")]
+
+
+jpeg(filename = "pairs.jpg", width = 4048, height = 4048)
+pairs(data_choice)
+dev.off()
+
+library(psych)
+jpeg(filename = "pairs2.jpg", width = 4048, height = 4048)
+pairs.panels(data_choice, 
+ method = "pearson", # correlation method
+ hist.col = "#00AFBB",
+ density = TRUE,  # show density plots
+ ellipses = TRUE # show correlation ellipses
+ )
+dev.off()
+``` 
+
+
+
+
+```{r}
+model_gam <- gam(locality_project_richness ~ s(b500_pc_urban) + s(b500_avg_pop_density) + s(b500_pc_open_forest_forest_other) + s(b500_pc_open_forest_forest_total) + s(region_pc_shrubs) + s(latitude) + s(number_of_checklists) + s(b1km_pc_shrubs) + s(b1km_pc_cultivated) + s(city_pc_permanent_water) + s(b500_pc_closed_forest_forest_total) + s(b500_pc_herbaceous_wetland) + s(b3km_pc_herbaceous_vegetation) + s(city_pc_cultivated) + s(city_pc_shrubs) + s(b500_pc_closed_forest_forest_other) + s(city_pc_urban) + s(region_pc_cultivated) + s(b1km_pc_permanent_water) + s(b5km_pc_bare) + s(region_pc_closed_forest_evergreen_needle) + s(elevation) + s(region_pc_closed_forest_forest_total) + s(region_pc_open_forest_evergreen_needle) + s(b5km_pc_closed_forest_evergreen_needle) + s(city_pc_closed_forest_evergreen_needle) + s(b500_pc_closed_forest_deciduous_broadleaf) + s(region_pc_permanent_water) + s(region_pc_open_forest_forest_other) + s(b500_pc_ocean) + s(city_pc_open_forest_forest_total) + s(city_pc_bare) + s(region_pc_bare) + s(city_pc_open_forest_forest_other) + s(city_pc_closed_forest_forest_total) + s(city_pc_closed_forest_forest_other) + s(region_pc_herbaceous_wetland) + s(region_pc_closed_forest_deciduous_broadleaf) + s(region_pc_urban) + s(city_pc_herbaceous_wetland) + s(pop_2015) + s(region_pc_closed_forest_forest_other) + s(city_pc_herbaceous_vegetation) + s(region_pc_closed_forest_evergreen_broadleaf) + s(region_pc_open_forest_deciduous_broadleaf) + s(city_pc_closed_forest_deciduous_broadleaf) + s(region_pc_closed_forest_forest_mixed) + s(b5km_pc_open_forest_evergreen_needle) + s(region_pc_open_forest_evergreen_broadleaf) + s(region_pc_ocean) + s(city_pc_open_forest_deciduous_broadleaf) + s(b5km_pc_closed_forest_forest_mixed) + s(region_pc_open_forest_forest_mixed) + s(city_pc_closed_forest_forest_mixed) + s(city_pc_ocean) + s(b5km_pc_closed_forest_evergreen_broadleaf) + s(region_pc_snow), data = dataset, method = "REML")
+summary(model_gam)
+```
+
+```{r}
+ggplot(data = dataset, aes(y = locality_project_richness, x= city_pc_cultivated)) +
+ geom_point() +
+ geom_smooth(method = "gam", formula = y ~ s(x))
+```
+
+
+```{r}
+ggplot(data = dataset, aes(y = locality_project_richness, x= b500_pc_urban)) +
+ geom_point() +
+ geom_smooth(method = "gam", formula = y ~ s(x))
+```
+
+
+```{r}
+m1 <- gam(locality_project_richness ~ s(b500_pc_urban), data = dataset, family = gaussian)
+summary(m1)
+plot(m1)
+gam.check(m1)
+```
+
+
+
+
+
+
