@@ -817,12 +817,23 @@ dev.off()
 ``` 
 
 
+```{r}
+library(mgcv)
+```
+
+```{r}
+model_gam <- gam(locality_project_richness ~ s(b500_pc_urban) + s(b500_avg_pop_density) + s(b500_pc_open_forest_forest_other) + s(b500_pc_open_forest_forest_total) + s(region_pc_shrubs) + s(latitude) + s(number_of_checklists) + s(b1km_pc_shrubs) + s(b1km_pc_cultivated) + s(city_pc_permanent_water) + s(b500_pc_closed_forest_forest_total) + s(b500_pc_herbaceous_wetland) + s(b3km_pc_herbaceous_vegetation) + s(city_pc_cultivated) + s(city_pc_shrubs) + s(b500_pc_closed_forest_forest_other) + s(city_pc_urban) + s(region_pc_cultivated) + s(b1km_pc_permanent_water) + s(b5km_pc_bare) + s(region_pc_closed_forest_evergreen_needle) + s(elevation) + s(region_pc_closed_forest_forest_total) + s(region_pc_open_forest_evergreen_needle) + s(b5km_pc_closed_forest_evergreen_needle) + s(city_pc_closed_forest_evergreen_needle) + s(b500_pc_closed_forest_deciduous_broadleaf) + s(region_pc_permanent_water) + s(region_pc_open_forest_forest_other) + s(b500_pc_ocean) + s(city_pc_open_forest_forest_total) + s(city_pc_bare) + s(region_pc_bare) + s(city_pc_open_forest_forest_other) + s(city_pc_closed_forest_forest_total) + s(city_pc_closed_forest_forest_other) + s(region_pc_herbaceous_wetland) + s(region_pc_closed_forest_deciduous_broadleaf) + s(region_pc_urban) + s(city_pc_herbaceous_wetland) + s(pop_2015) + s(region_pc_closed_forest_forest_other) + s(city_pc_herbaceous_vegetation) + s(region_pc_closed_forest_evergreen_broadleaf) + s(region_pc_open_forest_deciduous_broadleaf) + s(city_pc_closed_forest_deciduous_broadleaf) + s(region_pc_closed_forest_forest_mixed) + s(b5km_pc_open_forest_evergreen_needle) + s(region_pc_open_forest_evergreen_broadleaf) + s(region_pc_ocean) + s(city_pc_open_forest_deciduous_broadleaf) + s(b5km_pc_closed_forest_forest_mixed) + s(region_pc_open_forest_forest_mixed) + s(city_pc_closed_forest_forest_mixed) + s(city_pc_ocean) + s(b5km_pc_closed_forest_evergreen_broadleaf) + s(region_pc_snow), data = dataset, method = "REML", select = T)
+summary(model_gam)
+```
+
+
 
 
 ```{r}
-model_gam <- gam(locality_project_richness ~ s(b500_pc_urban) + s(b500_avg_pop_density) + s(b500_pc_open_forest_forest_other) + s(b500_pc_open_forest_forest_total) + s(region_pc_shrubs) + s(latitude) + s(number_of_checklists) + s(b1km_pc_shrubs) + s(b1km_pc_cultivated) + s(city_pc_permanent_water) + s(b500_pc_closed_forest_forest_total) + s(b500_pc_herbaceous_wetland) + s(b3km_pc_herbaceous_vegetation) + s(city_pc_cultivated) + s(city_pc_shrubs) + s(b500_pc_closed_forest_forest_other) + s(city_pc_urban) + s(region_pc_cultivated) + s(b1km_pc_permanent_water) + s(b5km_pc_bare) + s(region_pc_closed_forest_evergreen_needle) + s(elevation) + s(region_pc_closed_forest_forest_total) + s(region_pc_open_forest_evergreen_needle) + s(b5km_pc_closed_forest_evergreen_needle) + s(city_pc_closed_forest_evergreen_needle) + s(b500_pc_closed_forest_deciduous_broadleaf) + s(region_pc_permanent_water) + s(region_pc_open_forest_forest_other) + s(b500_pc_ocean) + s(city_pc_open_forest_forest_total) + s(city_pc_bare) + s(region_pc_bare) + s(city_pc_open_forest_forest_other) + s(city_pc_closed_forest_forest_total) + s(city_pc_closed_forest_forest_other) + s(region_pc_herbaceous_wetland) + s(region_pc_closed_forest_deciduous_broadleaf) + s(region_pc_urban) + s(city_pc_herbaceous_wetland) + s(pop_2015) + s(region_pc_closed_forest_forest_other) + s(city_pc_herbaceous_vegetation) + s(region_pc_closed_forest_evergreen_broadleaf) + s(region_pc_open_forest_deciduous_broadleaf) + s(city_pc_closed_forest_deciduous_broadleaf) + s(region_pc_closed_forest_forest_mixed) + s(b5km_pc_open_forest_evergreen_needle) + s(region_pc_open_forest_evergreen_broadleaf) + s(region_pc_ocean) + s(city_pc_open_forest_deciduous_broadleaf) + s(b5km_pc_closed_forest_forest_mixed) + s(region_pc_open_forest_forest_mixed) + s(city_pc_closed_forest_forest_mixed) + s(city_pc_ocean) + s(b5km_pc_closed_forest_evergreen_broadleaf) + s(region_pc_snow), data = dataset, method = "REML")
-summary(model_gam)
+gam.check(model_gam, rep = 500)
 ```
+
+
 
 ```{r}
 ggplot(data = dataset, aes(y = locality_project_richness, x= city_pc_cultivated)) +
