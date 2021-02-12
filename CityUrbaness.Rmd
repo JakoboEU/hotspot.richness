@@ -1,0 +1,133 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+```{r}
+library(ggplot2)
+library(reshape2)
+library(rpart)
+library(tidyverse)
+library(mgcv)
+library(ggrepel)
+```
+
+
+```{r}
+dataset <- read_csv("hotspot_data.csv")
+head(dataset)
+```
+```{r}
+cities_richness <- ggplot(dataset, aes(x = city_name, y = locality_project_richness)) +
+  geom_boxplot() + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+jpeg("cities_richness.jpg", width = 2000)
+cities_richness
+dev.off()
+
+cities_richness
+```
+
+```{r}
+ggplot(dataset, aes(x = latitude, y = locality_project_richness)) +
+  geom_point()
+```
+```{r}
+ggplot(dataset, aes(x = city_pc_urban, y = latitude)) +
+  geom_point()
+```
+```{r}
+ggplot(dataset, aes(x = city_pc_urban, y = locality_project_richness)) +
+  geom_point()
+```
+```{r}
+dataset[dataset$latitude < 0,]
+```
+
+```{r}
+apply_absolute_lat <- function(df) {
+  df$abs_latitude <- abs(df$latitude)
+  df$hemisphere <- 'N'
+  df$hemisphere[dataset$latitude < 0] <- 'S'
+  df$hemisphere <- as.factor(df$hemisphere)
+  df
+}
+```
+
+```{r}
+dataset_for_model <- apply_absolute_lat(dataset)
+model_city_pc_urban <- bam(locality_project_richness ~ 
+                             hemisphere
+                           + s(city_pc_urban, k = 30) 
+                           + s(number_of_checklists, k = 1) 
+                           + s(abs_latitude, k = 30)
+                           + s(city_pc_urban, k = 30, by = hemisphere) 
+                           + s(number_of_checklists, k = 1, by = hemisphere) 
+                           + s(abs_latitude, k = 30, by = hemisphere)
+                           + ti(city_pc_urban, abs_latitude)
+                           + ti(number_of_checklists, abs_latitude)
+                          , data = dataset_for_model, method='fREML', discrete = T, select = T)
+summary(model_city_pc_urban)
+```
+
+```{r}
+AIC(model_city_pc_urban)
+```
+
+```{r}
+gam.check(model_city_pc_urban)
+```
+
+```{r}
+plot(model_city_pc_urban, pages = 1, scheme = 2, shade = T)
+```
+
+
+```{r}
+pdata_city_pc_urban <- with(dataset, expand.grid(
+  latitude = seq(min(latitude), max(latitude), by = 1),
+  number_of_checklists = seq(500, 2000, by = 500),
+  city_pc_urban = seq(min(city_pc_urban), max(city_pc_urban), by = 0.001)
+))
+pdata_city_pc_urban <- apply_absolute_lat(pdata_city_pc_urban)
+fit <- predict(model_city_pc_urban, pdata_city_pc_urban)
+ind <- exclude.too.far(pdata_city_pc_urban$city_pc_urban, pdata_city_pc_urban$latitude,
+                       dataset$city_pc_urban, dataset$latitude, dist = 0.02)
+fit[ind] <- NA
+pred_city_pc_urban <- cbind(pdata_city_pc_urban, locality_project_richness = fit)
+```
+
+```{r}
+ggplot(pred_city_pc_urban, aes(x = city_pc_urban, y = latitude, color = locality_project_richness)) +
+  geom_point() +
+  scale_color_continuous(low = "yellow", high = "red", na.value = NA) +
+  facet_wrap( ~ number_of_checklists, nrow=2)
+```
+
+```{r}
+cities <- data.frame(aggregate(dataset[, c("number_of_checklists", "city_pc_urban", "latitude", "locality_project_richness")], list(dataset$city_name), mean))
+names(cities) <- c("city_name", "number_of_checklists", "city_pc_urban", "latitude", "locality_project_richness")
+cities
+```
+
+```{r}
+city_plot <- ggplot(cities, aes(x = city_pc_urban, y = latitude)) +
+  geom_text(aes(label=city_name), hjust=1.5, size = 3) +
+  geom_point(aes(size = number_of_checklists, color = locality_project_richness)) +
+  scale_colour_gradient(low = "yellow", high = "red", na.value = NA) +
+  theme_bw()
+
+jpeg("city_plot.jpg", width = 800, height = 600)
+city_plot
+dev.off()
+
+city_plot
+```
+
+```{r}
+ggplot(dataset, aes(x = number_of_checklists, y = latitude)) +
+  geom_point() +
+  geom_text(aes(label=city_name), hjust=1.5, size = 2) 
+```
+
